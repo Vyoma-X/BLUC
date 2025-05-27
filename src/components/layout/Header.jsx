@@ -14,7 +14,9 @@ const Header = () => {
   const [premiumEndDate, setPremiumEndDate] = useState(null);
   useEffect(() => {
     fetchapi();
-    console.log(isPremium);
+    console.log(isPremium); 
+
+    
 
   }, [])
 
