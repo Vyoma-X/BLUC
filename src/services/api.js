@@ -101,7 +101,11 @@ const auth = {
 // User profile
 const user = {
   getProfile: async () => {
-    return api.get('/auth/user/profile');
+    return api.get('/auth/user/profile',{
+      headers: {
+        authorization: `Bearer ${localStorage.getItem('token')}`
+      }
+    });
   },
   
   updateProfile: async (profileData) => {

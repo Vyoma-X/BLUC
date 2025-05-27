@@ -169,13 +169,13 @@ const PremiumModal = ({ onClose }) => {
 
   if (user?.isPremium && subscriptionDetails) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 my-8">
-          <div className="p-6">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-auto">
+          <div className="p-4 sm:p-6">
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center">
-                <Crown className="text-yellow-500 mr-2" size={24} />
-                <h2 className="text-2xl font-bold">Premium Account</h2>
+                <Crown className="text-yellow-500 mr-2 w-6 h-6 sm:w-8 sm:h-8" />
+                <h2 className="text-xl sm:text-2xl font-bold">Premium Account</h2>
               </div>
               <button
                 onClick={onClose}
@@ -185,14 +185,14 @@ const PremiumModal = ({ onClose }) => {
               </button>
             </div>
 
-            <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg p-6 mb-4 text-center">
-              <Crown className="text-yellow-500 mx-auto mb-4" size={48} />
-              <h3 className="text-xl font-bold text-gray-800 mb-2">You're a Premium Member!</h3>
-              <p className="text-gray-600 mb-4">
+            <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg p-4 sm:p-6 mb-4 text-center">
+              <Crown className="text-yellow-500 mx-auto mb-3 sm:mb-4 w-12 h-12 sm:w-16 sm:h-16" />
+              <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">You're a Premium Member!</h3>
+              <p className="text-sm sm:text-base text-gray-600 mb-4">
                 Enjoy all premium features until {new Date(subscriptionDetails.endDate).toLocaleDateString()}
               </p>
-              <div className="bg-white rounded-lg p-4 shadow-sm">
-                <p className="text-gray-700 font-medium">
+              <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
+                <p className="text-sm sm:text-base text-gray-700 font-medium">
                   Your premium status is active and you have access to all premium features.
                 </p>
               </div>
@@ -200,7 +200,7 @@ const PremiumModal = ({ onClose }) => {
 
             <button
               onClick={onClose}
-              className="w-full py-2 text-gray-600 font-medium hover:text-gray-800"
+              className="w-full py-2 text-gray-600 font-medium hover:text-gray-800 text-sm sm:text-base"
             >
               Close
             </button>
@@ -212,15 +212,15 @@ const PremiumModal = ({ onClose }) => {
 
   if (error) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 my-8">
-          <div className="p-6">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-auto">
+          <div className="p-4 sm:p-6">
             <div className="text-center">
-              <h2 className="text-xl font-bold text-red-600 mb-4">Error</h2>
-              <p className="text-gray-600 mb-4">{error}</p>
+              <h2 className="text-lg sm:text-xl font-bold text-red-600 mb-3 sm:mb-4">Error</h2>
+              <p className="text-sm sm:text-base text-gray-600 mb-4">{error}</p>
               <button
                 onClick={onClose}
-                className="w-full py-2 text-gray-600 font-medium hover:text-gray-800"
+                className="w-full py-2 text-gray-600 font-medium hover:text-gray-800 text-sm sm:text-base"
               >
                 Close
               </button>
@@ -232,13 +232,13 @@ const PremiumModal = ({ onClose }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 my-8 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
         <div className="p-4">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center">
-              <Crown className="text-yellow-500 mr-2" size={24} />
-              <h2 className="text-2xl font-bold">Upgrade to Premium</h2>
+              <Crown className="text-yellow-500 mr-2 w-6 h-6 sm:w-8 sm:h-8" />
+              <h2 className="text-xl sm:text-2xl font-bold">Upgrade to Premium</h2>
             </div>
             <button
               onClick={handleClose}
@@ -248,11 +248,11 @@ const PremiumModal = ({ onClose }) => {
             </button>
           </div>
 
-          <p className="text-gray-600 text-center mb-4">
+          <p className="text-sm sm:text-base text-gray-600 text-center mb-4">
             Upgrade to continue using premium features or continue with free random chat!
           </p>
 
-          <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
             {Object.entries(plans).map(([planId, plan]) => (
               <div
                 key={planId}
@@ -264,8 +264,8 @@ const PremiumModal = ({ onClose }) => {
               >
                 <div className="flex justify-between items-start mb-2">
                   <div>
-                    <h3 className="font-bold text-lg">{plan.label}</h3>
-                    <p className="text-2xl font-bold text-blue-600">₹{plan.price}</p>
+                    <h3 className="font-bold text-base sm:text-lg">{plan.label}</h3>
+                    <p className="text-xl sm:text-2xl font-bold text-blue-600">₹{plan.price}</p>
                   </div>
                   {plan.save !== '0%' && (
                     <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded">
@@ -274,10 +274,10 @@ const PremiumModal = ({ onClose }) => {
                   )}
                 </div>
 
-                <ul className="text-sm text-gray-600 mt-2">
+                <ul className="text-xs sm:text-sm text-gray-600 mt-2 space-y-1">
                   {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-start mb-1">
-                      <Check size={16} className="text-green-500 mr-1 flex-shrink-0 mt-0.5" />
+                    <li key={index} className="flex items-start">
+                      <Check size={14} className="text-green-500 mr-1 flex-shrink-0 mt-0.5" />
                       <span>{feature}</span>
                     </li>
                   ))}
@@ -288,7 +288,7 @@ const PremiumModal = ({ onClose }) => {
 
           <button
             onClick={() => handleSubscribe(plans[selectedPlan].price)}
-            className="bluc-btn-primary w-full mb-2"
+            className="bluc-btn-primary w-full mb-2 text-sm sm:text-base"
             disabled={isProcessing}
           >
             {isProcessing ? 'Processing...' : `Get ${plans[selectedPlan].label} Pass (₹${plans[selectedPlan].price})`}
@@ -296,7 +296,7 @@ const PremiumModal = ({ onClose }) => {
 
           <button
             onClick={onClose}
-            className="w-full py-2 text-gray-600 font-medium hover:text-gray-800"
+            className="w-full py-2 text-gray-600 font-medium hover:text-gray-800 text-sm sm:text-base"
           >
             Continue with Free Version
           </button>
