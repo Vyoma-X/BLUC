@@ -2,13 +2,14 @@ import Subscription from '../models/Subscription.js';
 import User from '../models/User.js';
 
 const subscriptionMiddleware = async (req, res, next) => {
+  console.log("subscriptionMiddleware called");
+  console.log("User found in request:", req.user);
   try {
     if (!req.user) {
       return next();
     }
-
     const subscription = await Subscription.findOne({
-      user: req.user._id,
+      user: req.user.id,
       status: 'active'
     });
     console.log("subscription", subscription);

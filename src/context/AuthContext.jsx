@@ -12,6 +12,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
   const { interest } = useMyContext();
   const location = useLocation();
   const navigate = useNavigate();
@@ -19,9 +20,11 @@ export const AuthProvider = ({ children }) => {
   const fetchUserProfile = async () => {
     try {
       const response = await api.user.getProfile();
+      console.log(response)
       const userData = response.data;
+      console.log('User profile fetched:', userData);
       setUser(userData);
-
+      setIsPremium(userData.isPremium);
       // Only show profile modal if user exists but profile is not complete
       if (userData && !userData.fullName && !userData.dateOfBirth && !userData.gender) {
         setShowProfileModal(true);
@@ -117,6 +120,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     loading,
+    isPremium,
     showAuthModal,
     setShowAuthModal,
     showProfileModal,
