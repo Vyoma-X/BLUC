@@ -16,8 +16,9 @@ export default (io, socket) => {
     let pastid=null; 
     let pastsocket=null;  
     if(socket.data.selectedGender=="random"){ 
+     
     for (let [id, otherSocket] of waitingUsers) {  
-
+  
       if (id === socket.id) continue; 
       
       if (
@@ -30,12 +31,14 @@ export default (io, socket) => {
         pastid=id; 
         pastsocket=otherSocket;
        }  
+
+       console.log("waitingUsers",waitingUsers);
        if(waitingUsers.size>0 && pastid){ 
         connecto(pastid,pastsocket,mode); 
         return;
        } 
       } 
-      else{  
+    else{  
         for (let [id, otherSocket] of waitingUsers) {  
         if(
          otherSocket.data &&
@@ -62,6 +65,8 @@ export default (io, socket) => {
         return;
       }
     }
+
+  
     waitingUsers.set(socket.id, socket);
     console.log(`User ${socket.id} added to ${mode} waiting list.`);
   }); 

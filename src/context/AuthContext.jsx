@@ -19,13 +19,18 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUserProfile = async () => {
     try {
+      setLoading(true);
       const response = await api.user.getProfile();
-      console.log(response)
       const userData = response.data;
       console.log('User profile fetched:', userData);
+
+      if (!userData) {
+        throw new Error('No user data received');
+      }
+
       setUser(userData);
-      setIsPremium(userData.isPremium);
-      // Only show profile modal if user exists but profile is not complete
+      setIsPremium(userData.isPremium || false);
+
       if (userData && !userData.fullName && !userData.dateOfBirth && !userData.gender) {
         setShowProfileModal(true);
       } else {
@@ -35,25 +40,36 @@ export const AuthProvider = ({ children }) => {
       return userData;
     } catch (error) {
       console.error('Failed to fetch user profile:', error);
+      setUser(null);
+      setIsPremium(false);
+      // Don't throw the error, just return null
       return null;
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     const checkAuthStatus = async () => {
-      const token = localStorage.getItem('token');
-      const queryParams = new URLSearchParams(location.search);
-      const newToken = queryParams.get('token');
+      try {
+        const token = localStorage.getItem('token');
+        const queryParams = new URLSearchParams(location.search);
+        const newToken = queryParams.get('token');
 
-      if (newToken) {
-        localStorage.setItem('token', newToken);
-        await fetchUserProfile();
-        navigate('/');
-      } else if (token) {
-        await fetchUserProfile();
+        if (newToken) {
+          localStorage.setItem('token', newToken);
+          await fetchUserProfile();
+          navigate('/');
+        } else if (token) {
+          await fetchUserProfile();
+        }
+      } catch (error) {
+        console.error('Auth status check failed:', error);
+        setUser(null);
+        setIsPremium(false);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
 
     checkAuthStatus();

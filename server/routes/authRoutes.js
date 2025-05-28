@@ -4,6 +4,7 @@ import passport from 'passport';
 import User from '../models/User.js';
 import authMiddleware from '../middleware/auth.middleware.js';
 import subscriptionMiddleware from '../middleware/subscription.middleware.js';
+import bcrypt from 'bcrypt';
 
 const router = express.Router();
 
@@ -65,32 +66,17 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+      return res.status(404).json({ message: 'User not found' });
     }
-    
-    const isMatch = await user.comparePassword(password);
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
-    
-    user.lastLogin = Date.now();
-    await user.save();
-    
-    const token = jwt.sign(
-      { user: { id: user.id } },
-      process.env.JWT_SECRET,
-      { expiresIn: '1d' }
-    );
-    
-    res.json({ 
-      token,
-      isProfileComplete: user.isProfileComplete 
-    });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+    res.json({ token, trialUsed: user.trialUsed });
   } catch (error) {
-    console.error('Login error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -98,17 +84,20 @@ router.post('/login', async (req, res) => {
 // Update profile
 router.put('/profile', authMiddleware, async (req, res) => {
   try {
-    const { fullName, gender, dateOfBirth, interests } = req.body;
+    const { fullName, gender, dateOfBirth, interests, trialUsed } = req.body;
+    
+    const updateData = {
+      ...(fullName && { fullName }),
+      ...(gender && { gender }),
+      ...(dateOfBirth && { dateOfBirth }),
+      ...(interests && { interests }),
+      ...(typeof trialUsed === 'boolean' && { trialUsed }),
+      isProfileComplete: true
+    };
     
     const user = await User.findByIdAndUpdate(
       req.user.id,
-      { 
-        fullName, 
-        gender, 
-        dateOfBirth, 
-        interests,
-        isProfileComplete: true 
-      },
+      updateData,
       { new: true }
     ).select('-password');
     
@@ -116,7 +105,11 @@ router.put('/profile', authMiddleware, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
     
-    res.json(user);
+    // Add isPremium from subscription middleware
+    const userData = user.toObject();
+    userData.isPremium = req.user.isPremium || false;
+    
+    res.json(userData);
   } catch (error) {
     console.error('Profile update error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -124,33 +117,34 @@ router.put('/profile', authMiddleware, async (req, res) => {
 });
 
 // Get user profile
-router.get('/user/profile',authMiddleware,subscriptionMiddleware, async (req, res) => {
+router.get('/user/profile', authMiddleware, subscriptionMiddleware, async (req, res) => {
   try {
-    // const authHeader = req.headers.authorization;
-    // if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    //   return res.status(401).json({ message: 'No token provided' });
-    // }
-    // const token = authHeader.split(' ')[1];
-    // let decoded;
-    // try {
-    //   decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // } catch (err) {
-    //   return res.status(401).json({ message: 'Invalid token' });
-    // }
-    console.log('Fetching user profile for user ID:', req.user.id);
-    const decoded = req.user; // Use the user from the auth middleware
-    const user = await User.findById(decoded.id).select('-password');
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ message: 'Unauthorized - Invalid user data' });
+    }
+
+    const user = await User.findById(req.user.id).select('-password');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    const userData = user.toObject(); // Convert Mongoose doc to plain object
-    userData.isPremium = decoded.isPremium || false;
-    console.log('User profile fetched:', userData);
-    console.log('User profile isPremium:', userData.isPremium);
+    
+    const userData = user.toObject();
+    userData.isPremium = req.user.isPremium || false;
+    
+    // If user is premium, set trialUsed to true
+    if (userData.isPremium) {
+      userData.trialUsed = true;
+      // Update the database to reflect this
+      await User.findByIdAndUpdate(req.user.id, { trialUsed: true });
+    }
+    
     res.json(userData);
   } catch (error) {
     console.error('Get profile error:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ 
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 

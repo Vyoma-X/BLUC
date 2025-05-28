@@ -10,7 +10,8 @@ const UserSchema = new mongoose.Schema({
     lowercase: true
   },
   password: {
-    type: String
+    type: String,
+    required: true
   },
   googleId: {
     type: String
@@ -43,6 +44,12 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  trialUsed: {
+    type: Boolean,
+    default: false
+  }
+}, {
+  timestamps: true
 });
 
 // Password hashing middleware

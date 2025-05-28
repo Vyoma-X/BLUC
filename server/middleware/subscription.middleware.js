@@ -3,7 +3,7 @@ import User from '../models/User.js';
 
 const subscriptionMiddleware = async (req, res, next) => {
   console.log("subscriptionMiddleware called");
-  console.log("User found in request:", req.user);
+  // console.log("User found in request:", req.user);
   try {
     if (!req.user) {
       return next();
@@ -12,7 +12,7 @@ const subscriptionMiddleware = async (req, res, next) => {
       user: req.user.id,
       status: 'active'
     });
-    console.log("subscription", subscription);
+    // console.log("subscription", subscription);
 
     if (subscription) {
       // Check if subscription has expired
