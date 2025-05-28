@@ -29,7 +29,8 @@ export const AuthProvider = ({ children }) => {
       }
 
       setUser(userData);
-      setIsPremium(userData.isPremium || false);
+      console.log(userData.isPremium)
+      setIsPremium(userData.isPremium);
 
       if (userData && !userData.fullName && !userData.dateOfBirth && !userData.gender) {
         setShowProfileModal(true);
