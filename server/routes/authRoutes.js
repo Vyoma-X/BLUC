@@ -32,8 +32,8 @@ router.get('/google/callback',
       console.log('Development mode detected, using localhost URLs');
     }
 
-    // res.redirect(`${clientUrl}?token=${token}&isProfileComplete=${req.user.isProfileComplete}`);
-    res.redirect(`https://bluc.vercel.app?token=${token}&isProfileComplete=${req.user.isProfileComplete}`);
+    res.redirect(`${clientUrl}?token=${token}&isProfileComplete=${req.user.isProfileComplete}`);
+    // res.redirect(`https://bluc.vercel.app?token=${token}&isProfileComplete=${req.user.isProfileComplete}`);
   }
 );
 

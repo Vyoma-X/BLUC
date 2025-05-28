@@ -94,11 +94,11 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('interest', interest);
     }
 
-    // const backendUrl = import.meta.env.PROD === ''
-    //   ? 'https://bluc-payed.vercel.app'
-    //   : 'http://localhost:3000';
+    const backendUrl = import.meta.env.PROD
+      ? 'https://bluc-payed.vercel.app'
+      : 'http://localhost:3000';
 
-    window.location.href = `https://bluc.onrender.com/api/auth/google/callback`;
+    window.location.href = `${backendUrl}/api/auth/google`;
   };
 
   const signup = async (email, password) => {
