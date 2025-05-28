@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useChat } from '../../context/ChatContext';
-import { useAuth } from '../../context/AuthContext'; 
+import { useAuth } from '../../context/AuthContext';
 import { Video, Mic, SkipForward } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
 import TextChat from './TextChat';
@@ -14,43 +14,42 @@ const VideoChat = ({ mode }) => {
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isPremium, setIsPremium] = useState(false);
-  const [timer, setTimer] = useState(30);
   const [genderSelectionFrozen, setGenderSelectionFrozen] = useState(false);
   const [onlineCount, setOnlineCount] = useState(33642);
-  const { socket, startVideoCall, endVideoCall, disconnectFromMatch, next ,selectedGender, setSelectedGender} = useChat();
-  const { user } = useAuth(); 
-  const { isConnecting, setIsConnecting, isMatched, matchDetails ,} = useChat();
-  const navigate = useNavigate(); 
+  const { socket, startVideoCall, endVideoCall, disconnectFromMatch, next, selectedGender, setSelectedGender, trialTimer, trialUsed } = useChat();
+  const { user } = useAuth();
+  const { isConnecting, setIsConnecting, isMatched, matchDetails } = useChat();
+  const navigate = useNavigate();
   const [isCallActive, setIsCallActive] = useState(false);
 
   // Initialize local stream only once
- useEffect(() => {
-  if (!streamInitializedRef.current) {
-    initLocalStream();
-    streamInitializedRef.current = true;
-  }
-
-  const handleUnload = () => {
-    if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
-    } 
-    console.log("handling reload"); 
-    if(isMatched){
-    endVideoCall();  
+  useEffect(() => {
+    if (!streamInitializedRef.current) {
+      initLocalStream();
+      streamInitializedRef.current = true;
     }
-  };
 
-  window.addEventListener('beforeunload', handleUnload);
+    const handleUnload = () => {
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+      console.log("handling reload");
+      if (isMatched) {
+        endVideoCall();
+      }
+    };
 
-  return () => {
-    window.removeEventListener('beforeunload', handleUnload);
-  ; 
-  };
-}, [isMatched]);
+    window.addEventListener('beforeunload', handleUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload);
+      ;
+    };
+  }, [isMatched]);
 
 
 
-  
+
   // Handle video call when matched
   useEffect(() => {
     if (localStream && matchDetails?.partnerId && !isCallActive) {
@@ -61,11 +60,11 @@ const VideoChat = ({ mode }) => {
       startVideoCall(matchDetails.partnerId, localStream, remoteVideoRef.current);
       setIsCallActive(true);
     }
-  }, [localStream, matchDetails,  startVideoCall]);
+  }, [localStream, matchDetails, startVideoCall]);
 
   const initLocalStream = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); 
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
       }
@@ -76,27 +75,8 @@ const VideoChat = ({ mode }) => {
   };
 
   useEffect(() => {
-    let timerInterval;
-    if (!isPremium && isMatched) {
-      timerInterval = setInterval(() => {
-        setTimer(prev => {
-          if (prev <= 1) {
-            clearInterval(timerInterval);
-            setGenderSelectionFrozen(true);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (timerInterval) clearInterval(timerInterval);
-    };
-  }, [isPremium, isMatched]); 
-   
-  useEffect(()=>{  
     handleSkipMatch();
-  },[selectedGender])
+  }, [selectedGender])
 
   const toggleVideo = () => {
     if (localStream) {
@@ -116,10 +96,10 @@ const VideoChat = ({ mode }) => {
         setIsAudioEnabled(audioTrack.enabled);
       }
     }
-  }; 
-  
-  const handleSkipMatch = () => { 
-    
+  };
+
+  const handleSkipMatch = () => {
+
     setIsCallActive(false);
     if (remoteVideoRef.current) {
       remoteVideoRef.current.srcObject = null;
@@ -128,7 +108,7 @@ const VideoChat = ({ mode }) => {
   };
 
   const selectGender = (gender) => {
-    if (isPremium || !genderSelectionFrozen) {
+    if (isPremium || (!trialUsed && trialTimer > 0)) {
       setSelectedGender(gender);
     }
   };
@@ -137,7 +117,7 @@ const VideoChat = ({ mode }) => {
     setIsPremium(!isPremium);
     if (!isPremium) {
       setGenderSelectionFrozen(false);
-      setTimer(60);
+      setTrialTimer(180); // Reset trial timer when toggling premium
     }
   };
 
@@ -151,7 +131,7 @@ const VideoChat = ({ mode }) => {
         </div>
         <div className="flex items-center">
           <div className="text-green-500 mr-4">{onlineCount} + online now</div>
-          <button 
+          <button
             onClick={togglePremium}
             className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded-md"
           >
@@ -171,17 +151,17 @@ const VideoChat = ({ mode }) => {
                 {isConnecting ? "Finding someone to chat with..." : "Waiting for match..."}
               </div>
             )}
-           <video
-            ref={remoteVideoRef}
-            autoPlay
-            playsInline
-            muted={false}
-            className="w-full h-full object-cover"
-          />
-          </div> 
+            <video
+              ref={remoteVideoRef}
+              autoPlay
+              playsInline
+              muted={false}
+              className="w-full h-full object-cover"
+            />
+          </div>
           {/* Local Video */}
           <div className="flex-1 bg-gray-800 flex items-center justify-center relative rounded-md overflow-hidden">
-            <video 
+            <video
               ref={localVideoRef}
               className="w-full h-full object-cover"
               autoPlay
@@ -195,7 +175,7 @@ const VideoChat = ({ mode }) => {
         <div className="w-3/5 flex flex-col border-l border-gray-200 overflow-hidden">
           {/* Chat header */}
           <div className="p-4 border-b border-gray-200 text-center text-gray-700">
-            {isMatched ? "You're now chatting with a random stranger. Say hi!" : "Waiting for a match..."} 
+            {isMatched ? "You're now chatting with a random stranger. Say hi!" : "Waiting for a match..."}
           </div>
 
           {/* Chat area - embedding the TextChat component */}
@@ -212,21 +192,21 @@ const VideoChat = ({ mode }) => {
 
           {/* Controls */}
           <div className="flex justify-center gap-4 py-4 border-t border-gray-200">
-            <button 
+            <button
               className={`${isVideoEnabled ? 'bg-blue-600 hover:bg-blue-700' : 'bg-red-600 hover:bg-red-700'} p-3 rounded-full text-white`}
               onClick={toggleVideo}
               title={isVideoEnabled ? "Turn off camera" : "Turn on camera"}
             >
               <Video size={24} />
             </button>
-            <button 
+            <button
               className={`${isAudioEnabled ? 'bg-blue-600 hover:bg-blue-700' : 'bg-red-600 hover:bg-red-700'} p-3 rounded-full text-white`}
               onClick={toggleAudio}
               title={isAudioEnabled ? "Mute microphone" : "Unmute microphone"}
             >
               <Mic size={24} />
             </button>
-            <button 
+            <button
               className="bg-blue-600 hover:bg-blue-700 p-3 rounded-full text-white"
               onClick={handleSkipMatch}
               title="Skip to next person"
@@ -237,12 +217,12 @@ const VideoChat = ({ mode }) => {
 
           {/* Gender Selection */}
           <div className="p-2 flex justify-between items-center border-t border-gray-200">
-            {!isPremium && timer > 0 && (
+            {!isPremium && !trialUsed && trialTimer > 0 && (
               <div className="text-sm text-gray-500">
-                Gender selection freezes in: {timer}s
+                Free trial: {trialTimer}s remaining
               </div>
             )}
-            {!isPremium && timer === 0 && (
+            {!isPremium && trialUsed && (
               <div className="text-sm text-gray-500">
                 Upgrade to Premium for gender selection
               </div>
@@ -256,28 +236,26 @@ const VideoChat = ({ mode }) => {
             <div className="flex items-center">
               <button
                 onClick={() => selectGender('female')}
-                disabled={!isPremium && genderSelectionFrozen}
-                className={`px-4 py-1 rounded-md ${
-                  !isPremium && genderSelectionFrozen
+                disabled={!isPremium && (trialUsed || trialTimer === 0)}
+                className={`px-4 py-1 rounded-md ${!isPremium && (trialUsed || trialTimer === 0)
                     ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                     : selectedGender === 'female'
                       ? "bg-blue-100 text-blue-700"
                       : "bg-white text-gray-700 hover:bg-gray-100"
-                } border border-gray-300 mr-2`}
+                  } border border-gray-300 mr-2`}
               >
                 Female
               </button>
 
               <button
                 onClick={() => selectGender('male')}
-                disabled={!isPremium && genderSelectionFrozen}
-                className={`px-4 py-1 rounded-md ${
-                  !isPremium && genderSelectionFrozen
+                disabled={!isPremium && (trialUsed || trialTimer === 0)}
+                className={`px-4 py-1 rounded-md ${!isPremium && (trialUsed || trialTimer === 0)
                     ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                     : selectedGender === 'male'
                       ? "bg-blue-100 text-blue-700"
                       : "bg-white text-gray-700 hover:bg-gray-100"
-                } border border-gray-300`}
+                  } border border-gray-300`}
               >
                 Male
               </button>

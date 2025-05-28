@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useRef, useState, useEffect} from 'react';
+import React, { createContext, useContext, useRef, useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
+import api from '../services/api';
 
 const ChatContext = createContext();
 export const useChat = () => useContext(ChatContext);
@@ -10,16 +11,16 @@ export const ChatProvider = ({ children }) => {
   const socketRef = useRef(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isMatched, setIsMatched] = useState(false);
-  const [matchDetails, setMatchDetails] = useState(null); 
+  const [matchDetails, setMatchDetails] = useState(null);
   const [selectedGender, setSelectedGender] = useState("random");
   const [peerConnection, setPeerConnection] = useState(null);
   const callStartedRef = useRef(false);
   const pendingCandidates = useRef([]);
-   useEffect(() => {
-    if (matchDetails?.partnerId) {
-      console.log("[Socket] Matched with:", matchDetails.partnerId);
-    }
-  }, [matchDetails?.partnerId]);
+  const [trialTimer, setTrialTimer] = useState(180); // 3 minutes in seconds
+  const [genderSelectionFrozen, setGenderSelectionFrozen] = useState(false);
+  const [trialUsed, setTrialUsed] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
+
   const iceServers = {
     iceServers: [
       { urls: "stun:stun.l.google.com:19302" },
@@ -30,7 +31,36 @@ export const ChatProvider = ({ children }) => {
       }
     ]
   };
-   
+
+  useEffect(() => {
+    if (user) {
+      setIsPremium(user.isPremium || false);
+      setTrialUsed(user.trialUsed || false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    let timerInterval;
+    if (user && !user.isPremium && isMatched && !trialUsed) {
+      timerInterval = setInterval(() => {
+        setTrialTimer(prev => {
+          if (prev <= 1) {
+            clearInterval(timerInterval);
+            setGenderSelectionFrozen(true);
+            setTrialUsed(true);
+            if (user) {
+              api.user.updateProfile({ trialUsed: true }).catch(console.error);
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (timerInterval) clearInterval(timerInterval);
+    };
+  }, [user, isMatched, trialUsed]);
 
   const initializeSocket = (gender, interest, name, mode) => {
     if (socketRef.current) return socketRef.current;
@@ -54,38 +84,38 @@ export const ChatProvider = ({ children }) => {
 
     socketInstance.on('connect', () => {
       console.log("[Socket] Connected:", socketInstance.id);
-      socketInstance.emit('user-details', { gender, interest, name, mode,selectedGender});
+      const genderToSend = (user?.isPremium || (!trialUsed && trialTimer > 0)) ? selectedGender : "random";
+      socketInstance.emit('user-details', { gender, interest, name, mode, selectedGender: genderToSend });
       setIsConnecting(true);
     });
 
-    socketInstance.on('find other', () => { 
+    socketInstance.on('find other', () => {
       console.log("[Socket] Received 'find other' event. Cleaning up and reconnecting...");
       cleanupMatch().then(() => {
         setIsConnecting(true);
         if (user) {
+          const genderToSend = (user.isPremium || (!trialUsed && trialTimer > 0)) ? selectedGender : "random";
           socketInstance.emit('user-details', {
             gender: user.gender,
             interest: user.interest,
             name: user.name,
             mode,
-            selectedGender
+            selectedGender: genderToSend
           });
         }
       });
     });
-    
 
-    socketInstance.on('match-found', async(data) => {
+    socketInstance.on('match-found', async (data) => {
       console.log("[Socket] Match found:", data);
       if (data.matched) {
         await cleanupMatch();
-        setIsMatched(true); 
+        setIsMatched(true);
         console.log("hello");
         setIsConnecting(false);
         setMatchDetails({ partnerId: data.socketId });
-      
       }
-    }); 
+    });
 
     socketInstance.on('start-call', () => {
       console.log("[Socket] Received 'start-call'");
@@ -140,12 +170,11 @@ export const ChatProvider = ({ children }) => {
     if (remoteVideo && remoteVideo.srcObject) {
       remoteVideo.srcObject.getTracks().forEach(track => track.stop());
       remoteVideo.srcObject = null;
-    } 
+    }
 
     callStartedRef.current = false;
     pendingCandidates.current = [];
-  }; 
-  
+  };
 
   const disconnectFromMatch = (mode) => {
     const socket = socketRef.current;
@@ -160,9 +189,8 @@ export const ChatProvider = ({ children }) => {
     const socket = socketRef.current;
     if (socket && matchDetails) {
       console.log("[Match] Skipping to next partner...");
-      socket.emit('next', matchDetails.partnerId, mode,); 
-       
-    } 
+      socket.emit('next', matchDetails.partnerId, mode,);
+    }
   };
 
   const sendMessage = (message, partnerId) => {
@@ -205,7 +233,6 @@ export const ChatProvider = ({ children }) => {
         console.log("[Call] Received remote track.");
         if (remoteVideoElement && event.streams[0]) {
           remoteVideoElement.srcObject = event.streams[0];
-         
         }
       };
 
@@ -214,37 +241,34 @@ export const ChatProvider = ({ children }) => {
       socket.off("ice-candidate");
       socket.off("end-video");
 
-   socket.on("video-offer", async (offer, fromSocketId) => {
-  
+      socket.on("video-offer", async (offer, fromSocketId) => {
+        try {
+          console.log("[Call] PeerConnection signaling state:", pc.signalingState);
 
-  try {
-    console.log("[Call] PeerConnection signaling state:", pc.signalingState);
+          if (pc.signalingState !== "stable") {
+            console.log("[Call] Rolling back and setting remote description...");
+            await Promise.all([
+              pc.setLocalDescription({ type: "rollback" }).catch(e => console.error("[Call] Rollback failed:", e)),
+              pc.setRemoteDescription(new RTCSessionDescription(offer)).catch(e => console.error("[Call] setRemoteDescription (rollback) failed:", e))
+            ]);
+          } else {
+            console.log("[Call] Setting remote description...");
+            await pc.setRemoteDescription(new RTCSessionDescription(offer));
+          }
 
-    if (pc.signalingState !== "stable") {
-      console.log("[Call] Rolling back and setting remote description...");
-      await Promise.all([
-        pc.setLocalDescription({ type: "rollback" }).catch(e => console.error("[Call] Rollback failed:", e)),
-        pc.setRemoteDescription(new RTCSessionDescription(offer)).catch(e => console.error("[Call] setRemoteDescription (rollback) failed:", e))
-      ]);
-    } else {
-      console.log("[Call] Setting remote description...");
-      await pc.setRemoteDescription(new RTCSessionDescription(offer));
-    }
+          console.log("[Call] Creating answer...");
+          const answer = await pc.createAnswer();
 
-    console.log("[Call] Creating answer...");
-    const answer = await pc.createAnswer();
+          console.log("[Call] Setting local description with answer...");
+          await pc.setLocalDescription(answer);
 
-    console.log("[Call] Setting local description with answer...");
-    await pc.setLocalDescription(answer);
-
-    console.log("[Call] Emitting video-answer...");
-    socket.emit("video-answer", answer, fromSocketId);
-    console.log("[Call] Sent video-answer.");
-  } catch (error) {
-    console.error("[Call] Error handling offer:", error);
-  }
-});
-
+          console.log("[Call] Emitting video-answer...");
+          socket.emit("video-answer", answer, fromSocketId);
+          console.log("[Call] Sent video-answer.");
+        } catch (error) {
+          console.error("[Call] Error handling offer:", error);
+        }
+      });
 
       socket.on("video-answer", async (answer) => {
         console.log("[Socket] Received video-answer");
@@ -277,7 +301,7 @@ export const ChatProvider = ({ children }) => {
 
       socket.on("end-video", () => {
         console.log("[Socket] Received end-video signal.");
-       
+
         setPeerConnection(null);
         pendingCandidates.current = [];
         if (remoteVideoElement) {
@@ -308,30 +332,61 @@ export const ChatProvider = ({ children }) => {
     if (isMatched) {
       console.log("[Call] Ending video call.");
       socket.emit("end-call", matchDetails.partnerId);
-    } 
+    }
     cleanupMatch();
+  };
+
+  const togglePremium = () => {
+    if (user) {
+      const newPremiumStatus = !user.isPremium;
+      setIsPremium(newPremiumStatus);
+      if (!newPremiumStatus) {
+        setGenderSelectionFrozen(false);
+        setTrialTimer(180);
+        setTrialUsed(false);
+        if (user) {
+          api.user.updateProfile({ trialUsed: false }).catch(console.error);
+        }
+      }
+    }
+  };
+
+  const handleGenderSelection = (gender) => {
+    if (user?.isPremium || (!trialUsed && trialTimer > 0)) {
+      setSelectedGender(gender);
+    }
   };
 
   const value = {
     socket: socketRef.current,
     isConnecting,
     isMatched,
-    matchDetails, 
+    matchDetails,
     selectedGender,
     initializeSocket,
     disconnectSocket,
     disconnectFromMatch,
-    next, 
-    setSelectedGender,
+    next,
+    setSelectedGender: handleGenderSelection,
     setIsConnecting,
     sendMessage,
     startVideoCall,
     endVideoCall,
+    togglePremium,
+    trialTimer,
+    trialUsed,
+    genderSelectionFrozen,
+    isPremium
   };
 
   return (
     <ChatContext.Provider value={value}>
       {children}
+      {user && !isPremium && !trialUsed && trialTimer > 0 && (
+        <div className="text-sm text-gray-500">
+          Free trial: {trialTimer}s remaining
+        </div>
+      )}
     </ChatContext.Provider>
   );
 };
