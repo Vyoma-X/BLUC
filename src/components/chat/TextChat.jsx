@@ -2,13 +2,29 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useChat } from '../../context/ChatContext';
 import { Send, X, SkipForward } from 'lucide-react';
 
-const TextChat = ({ partnerId, embedded = false, onClose }) => {
+const TextChat = ({ partnerId, embedded = false, mode="text",onClose}) => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const messagesEndRef = useRef(null);
-  const { sendMessage, disconnectFromMatch } = useChat();
+  const { sendMessage, disconnectFromMatch,next,isMatched} = useChat();
   
-  // Listen for incoming messages
+  // Listen for incoming messages 
+  useEffect(() => {
+    const handleUnload = () => {
+      if(isMatched){ 
+        disconnectFromMatch(mode); 
+        print("hello")
+      }
+    };
+  
+    window.addEventListener('beforeunload', handleUnload);
+  
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload);
+    ; 
+    };
+  }, [isMatched]);
+  
   useEffect(() => {
   const handleReceiveMessage = (msg) => { 
     console.log(msg);
@@ -42,7 +58,7 @@ const TextChat = ({ partnerId, embedded = false, onClose }) => {
       
       // Add to local messages
       setMessages(prev => [...prev, { text: message, sender: 'self' }]);
-      
+      console.log("he")
       // Clear input
       setMessage('');
     }
@@ -56,7 +72,7 @@ const TextChat = ({ partnerId, embedded = false, onClose }) => {
   };
   
   const handleSkip = () => {
-    disconnectFromMatch();
+    next(mode);
   };
   
   return (
