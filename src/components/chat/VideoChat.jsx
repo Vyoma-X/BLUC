@@ -13,11 +13,10 @@ const VideoChat = ({ mode }) => {
   const [localStream, setLocalStream] = useState(null);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  const [isPremium, setIsPremium] = useState(false);
   const [genderSelectionFrozen, setGenderSelectionFrozen] = useState(false);
   const [onlineCount, setOnlineCount] = useState(33642);
   const { socket, startVideoCall, endVideoCall, disconnectFromMatch, next, selectedGender, setSelectedGender, trialTimer, trialUsed } = useChat();
-  const { user } = useAuth();
+  const { user, isPremium } = useAuth();
   const { isConnecting, setIsConnecting, isMatched, matchDetails } = useChat();
   const navigate = useNavigate();
   const [isCallActive, setIsCallActive] = useState(false);
@@ -36,7 +35,9 @@ const VideoChat = ({ mode }) => {
       console.log("handling reload");
       if (isMatched) {
         endVideoCall();
+       
       }
+     
     };
 
     window.addEventListener('beforeunload', handleUnload);
@@ -113,32 +114,10 @@ const VideoChat = ({ mode }) => {
     }
   };
 
-  const togglePremium = () => {
-    setIsPremium(!isPremium);
-    if (!isPremium) {
-      setGenderSelectionFrozen(false);
-      setTrialTimer(180); // Reset trial timer when toggling premium
-    }
-  };
-
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
       {/* Header */}
-      {/* <div className="bg-white py-2 px-4 shadow-sm flex justify-between items-center">
-        <div className="flex items-center">
-          <div className="text-blue-500 text-2xl font-bold">BLUC</div>
-          <div className="ml-8 text-gray-700">Talk to strangers!</div>
-        </div>
-        <div className="flex items-center">
-          <div className="text-green-500 mr-4">{onlineCount} + online now</div>
-          <button
-            onClick={togglePremium}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded-md"
-          >
-            {isPremium ? "Premium" : "Premium"}
-          </button>
-        </div>
-      </div> */}
+
 
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">

@@ -23,9 +23,9 @@ router.get('/google/callback',
     );
     
     // Use the correct client URL based on environment
-    const clientUrl = process.env.NODE_ENV === 'production'
-      ? 'https://bluc-payed.vercel.app'
-      : 'http://localhost:5173';
+    // const clientUrl = process.env.NODE_ENV === 'production'
+    //   ? 'https://bluc-payed.vercel.app'
+    //   : 'http://localhost:5173';
 
     // Add a check to ensure we're not in development mode
     if (process.env.NODE_ENV !== 'production') {
@@ -33,6 +33,7 @@ router.get('/google/callback',
     }
 
     res.redirect(`${clientUrl}?token=${token}&isProfileComplete=${req.user.isProfileComplete}`);
+    // res.redirect(`https://bluc.vercel.app?token=${token}&isProfileComplete=${req.user.isProfileComplete}`);
   }
 );
 
