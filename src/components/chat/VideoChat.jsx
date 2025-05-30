@@ -117,7 +117,7 @@ const VideoChat = ({ mode }) => {
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
       {/* Header */}
-  
+
 
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
