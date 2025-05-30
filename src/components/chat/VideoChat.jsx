@@ -124,7 +124,7 @@ const VideoChat = ({ mode }) => {
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
       {/* Header */}
-      <div className="bg-white py-2 px-4 shadow-sm flex justify-between items-center">
+      {/* <div className="bg-white py-2 px-4 shadow-sm flex justify-between items-center">
         <div className="flex items-center">
           <div className="text-blue-500 text-2xl font-bold">BLUC</div>
           <div className="ml-8 text-gray-700">Talk to strangers!</div>
@@ -138,7 +138,7 @@ const VideoChat = ({ mode }) => {
             {isPremium ? "Premium" : "Premium"}
           </button>
         </div>
-      </div>
+      </div> */}
 
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
