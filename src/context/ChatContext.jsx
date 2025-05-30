@@ -2,7 +2,7 @@ import React, { createContext, useContext, useRef, useState, useEffect } from 'r
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 import api from '../services/api';
-
+import { useNavigate } from 'react-router-dom';
 const ChatContext = createContext();
 export const useChat = () => useContext(ChatContext);
 
@@ -20,6 +20,7 @@ export const ChatProvider = ({ children }) => {
   const [genderSelectionFrozen, setGenderSelectionFrozen] = useState(false);
   const [trialUsed, setTrialUsed] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
+  const navigate = useNavigate();
 
   const iceServers = {
     iceServers: [
@@ -31,6 +32,34 @@ export const ChatProvider = ({ children }) => {
       }
     ]
   };
+
+  useEffect(() => {
+    const socket = socketRef.current;
+
+    const handleBeforeUnload = (e) => {
+      // Store the current path in sessionStorage
+      sessionStorage.setItem('lastPath', window.location.pathname);
+      if (socket) {
+        socket.emit('reloading');
+      }
+    };
+
+    // Check if we're coming from a reload
+    const lastPath = sessionStorage.getItem('lastPath');
+    if (lastPath === '/chat/video') {
+      sessionStorage.removeItem('lastPath');
+      // Use setTimeout to ensure navigation happens after the component is mounted
+      setTimeout(() => {
+        navigate('/');
+      }, 0);
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [navigate]);
 
   useEffect(() => {
     if (user) {
