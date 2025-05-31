@@ -9,6 +9,7 @@ const VideoChat = ({ mode }) => {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const streamInitializedRef = useRef(false);
+  const cleanupRef = useRef(false);
 
   const [localStream, setLocalStream] = useState(null);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
@@ -28,28 +29,31 @@ const VideoChat = ({ mode }) => {
       streamInitializedRef.current = true;
     }
 
-    const handleUnload = () => {
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
+    const handleUnload = async () => {
+      if (cleanupRef.current) return;
+      cleanupRef.current = true;
+
+      try {
+        if (localStream) {
+          localStream.getTracks().forEach(track => track.stop());
+        }
+
+        if (isMatched) {
+          await endVideoCall();
+          await disconnectFromMatch();
+        }
+      } catch (error) {
+        console.error('Error during cleanup:', error);
       }
-      console.log("handling reload");
-      if (isMatched) {
-        endVideoCall();
-       
-      }
-     
     };
 
     window.addEventListener('beforeunload', handleUnload);
 
     return () => {
       window.removeEventListener('beforeunload', handleUnload);
-      ;
+      handleUnload();
     };
-  }, [isMatched]);
-
-
-
+  }, [isMatched, localStream]);
 
   // Handle video call when matched
   useEffect(() => {
@@ -77,7 +81,7 @@ const VideoChat = ({ mode }) => {
 
   useEffect(() => {
     handleSkipMatch();
-  }, [selectedGender])
+  }, [selectedGender]);
 
   const toggleVideo = () => {
     if (localStream) {
@@ -99,13 +103,16 @@ const VideoChat = ({ mode }) => {
     }
   };
 
-  const handleSkipMatch = () => {
-
-    setIsCallActive(false);
-    if (remoteVideoRef.current) {
-      remoteVideoRef.current.srcObject = null;
+  const handleSkipMatch = async () => {
+    try {
+      setIsCallActive(false);
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = null;
+      }
+      await next(mode);
+    } catch (error) {
+      console.error('Error during skip:', error);
     }
-    next(mode);
   };
 
   const selectGender = (gender) => {
@@ -217,10 +224,10 @@ const VideoChat = ({ mode }) => {
                 onClick={() => selectGender('female')}
                 disabled={!isPremium && (trialUsed || trialTimer === 0)}
                 className={`px-4 py-1 rounded-md ${!isPremium && (trialUsed || trialTimer === 0)
-                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                    : selectedGender === 'female'
-                      ? "bg-blue-100 text-blue-700"
-                      : "bg-white text-gray-700 hover:bg-gray-100"
+                  ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                  : selectedGender === 'female'
+                    ? "bg-blue-100 text-blue-700"
+                    : "bg-white text-gray-700 hover:bg-gray-100"
                   } border border-gray-300 mr-2`}
               >
                 Female
@@ -230,10 +237,10 @@ const VideoChat = ({ mode }) => {
                 onClick={() => selectGender('male')}
                 disabled={!isPremium && (trialUsed || trialTimer === 0)}
                 className={`px-4 py-1 rounded-md ${!isPremium && (trialUsed || trialTimer === 0)
-                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                    : selectedGender === 'male'
-                      ? "bg-blue-100 text-blue-700"
-                      : "bg-white text-gray-700 hover:bg-gray-100"
+                  ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                  : selectedGender === 'male'
+                    ? "bg-blue-100 text-blue-700"
+                    : "bg-white text-gray-700 hover:bg-gray-100"
                   } border border-gray-300`}
               >
                 Male
